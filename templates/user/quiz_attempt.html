@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}{{ quiz.title }} - Quiz Master{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h4><i class="fas fa-clipboard-list me-2"></i>{{ quiz.title }}</h4>
+                    <small class="text-muted">{{ quiz.chapter.name }} - {{ quiz.chapter.subject.name }}</small>
+                </div>
+                <div class="text-end">
+                    <div id="timer" class="badge bg-warning fs-6">
+                        <i class="fas fa-clock me-1"></i>
+                        <span id="time-remaining">{{ quiz.time_duration }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <form id="quizForm" method="POST" action="{{ url_for('user.submit_quiz', quiz_id=quiz.id) }}">
+                    {% for question in questions %}
+                    <div class="question-container mb-4 p-3 border rounded">
+                        <h6 class="fw-bold mb-3">
+                            Question {{ loop.index }} of {{ questions|length }}
+                        </h6>
+                        <p class="mb-3">{{ question.question_statement }}</p>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" 
+                                           name="question_{{ question.id }}" 
+                                           id="q{{ question.id }}_opt1" 
+                                           value="1" required>
+                                    <label class="form-check-label" for="q{{ question.id }}_opt1">
+                                        A) {{ question.option1 }}
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" 
+                                           name="question_{{ question.id }}" 
+                                           id="q{{ question.id }}_opt2" 
+                                           value="2" required>
+                                    <label class="form-check-label" for="q{{ question.id }}_opt2">
+                                        B) {{ question.option2 }}
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" 
+                                           name="question_{{ question.id }}" 
+                                           id="q{{ question.id }}_opt3" 
+                                           value="3" required>
+                                    <label class="form-check-label" for="q{{ question.id }}_opt3">
+                                        C) {{ question.option3 }}
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" 
+                                           name="question_{{ question.id }}" 
+                                           id="q{{ question.id }}_opt4" 
+                                           value="4" required>
+                                    <label class="form-check-label" for="q{{ question.id }}_opt4">
+                                        D) {{ question.option4 }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="text-center mt-4">
+                        <button type="button" class="btn btn-outline-secondary me-2" onclick="saveProgress()">
+                            <i class="fas fa-save me-1"></i>Save Progress
+                        </button>
+                        <button type="submit" class="btn btn-success" onclick="return confirmSubmit()">
+                            <i class="fas fa-paper-plane me-1"></i>Submit Quiz
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quiz Information Sidebar -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle me-2"></i>Quiz Information</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li><strong>Subject:</strong> {{ quiz.chapter.subject.name }}</li>
+                    <li><strong>Chapter:</strong> {{ quiz.chapter.name }}</li>
+                    <li><strong>Duration:</strong> {{ quiz.time_duration }}</li>
+                    <li><strong>Questions:</strong> {{ questions|length }}</li>
+                    <li><strong>Date:</strong> {{ quiz.date_of_quiz.strftime('%Y-%m-%d') }}</li>
+                </ul>
+                
+                {% if quiz.remarks %}
+                <div class="mt-3">
+                    <strong>Instructions:</strong>
+                    <p class="text-muted">{{ quiz.remarks }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Progress Tracker -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-tasks me-2"></i>Progress</h5>
+            </div>
+            <div class="card-body">
+                <div class="progress mb-2">
+                    <div class="progress-bar" role="progressbar" 
+                         style="width: 0%" 
+                         aria-valuenow="0" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100" 
+                         id="progress-bar">0%</div>
+                </div>
+                <small class="text-muted">
+                    <span id="answered-count">0</span> of {{ questions|length }} questions answered
+                </small>
+                
+                <div class="mt-3">
+                    <h6>Question Navigator</h6>
+                    <div id="question-navigator">
+                        {% for question in questions %}
+                        <button type="button" 
+                                class="btn btn-outline-secondary btn-sm me-1 mb-1 question-nav-btn" 
+                                data-question="{{ loop.index }}"
+                                onclick="scrollToQuestion({{ loop.index }})">
+                            {{ loop.index }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Warning Box -->
+        <div class="card mt-3 border-warning">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle text-warning fa-2x me-3"></i>
+                    <div>
+                        <h6 class="mb-1">Important!</h6>
+                        <small class="text-muted">Make sure to answer all questions before submitting. You cannot change answers after submission.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let timeLimit = "{{ quiz.time_duration }}"; // Format: HH:MM
+let [hours, minutes] = timeLimit.split(':').map(Number);
+let timeInSeconds = (hours * 3600) + (minutes * 60);
+let timerInterval;
+
+// Start timer
+function startTimer() {
+    timerInterval = setInterval(function() {
+        if (timeInSeconds <= 0) {
+            clearInterval(timerInterval);
+            alert('Time is up! Submitting quiz automatically.');
+            document.getElementById('quizForm').submit();
+            return;
+        }
+        
+        timeInSeconds--;
+        updateTimerDisplay();
+    }, 1000);
+}
+
+function updateTimerDisplay() {
+    let hours = Math.floor(timeInSeconds / 3600);
+    let minutes = Math.floor((timeInSeconds % 3600) / 60);
+    let seconds = timeInSeconds % 60;
+    
+    let display = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    document.getElementById('time-remaining').textContent = display;
+    
+    // Change color when time is running low
+    let timerElement = document.getElementById('timer');
+    if (timeInSeconds <= 300) { // 5 minutes
+        timerElement.className = 'badge bg-danger fs-6';
+    } else if (timeInSeconds <= 600) { // 10 minutes
+        timerElement.className = 'badge bg-warning fs-6';
+    }
+}
+
+// Track progress
+function updateProgress() {
+    let totalQuestions = {{ questions|length }};
+    let answeredQuestions = 0;
+    
+    // Count answered questions
+    document.querySelectorAll('input[type="radio"]:checked').forEach(function(radio) {
+        answeredQuestions++;
+    });
+    
+    let percentage = Math.round((answeredQuestions / totalQuestions) * 100);
+    
+    document.getElementById('progress-bar').style.width = percentage + '%';
+    document.getElementById('progress-bar').textContent = percentage + '%';
+    document.getElementById('answered-count').textContent = answeredQuestions;
+    
+    // Update question navigator
+    document.querySelectorAll('.question-nav-btn').forEach(function(btn, index) {
+        let questionNumber = index + 1;
+        let questionName = 'question_' + document.querySelectorAll('input[type="radio"]')[index * 4].name.split('_')[1];
+        let isAnswered = document.querySelector(`input[name="${questionName}"]:checked`);
+        
+        if (isAnswered) {
+            btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('btn-success');
+        } else {
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-secondary');
+        }
+    });
+}
+
+// Scroll to specific question
+function scrollToQuestion(questionNumber) {
+    let questionContainers = document.querySelectorAll('.question-container');
+    if (questionContainers[questionNumber - 1]) {
+        questionContainers[questionNumber - 1].scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Save progress (could be extended to use AJAX)
+function saveProgress() {
+    // This would typically save to server
+    alert('Progress saved locally!');
+}
+
+// Confirm submission
+function confirmSubmit() {
+    let totalQuestions = {{ questions|length }};
+    let answeredQuestions = document.querySelectorAll('input[type="radio"]:checked').length;
+    
+    if (answeredQuestions < totalQuestions) {
+        return confirm(`You have only answered ${answeredQuestions} out of ${totalQuestions} questions. Are you sure you want to submit?`);
+    }
+    
+    return confirm('Are you sure you want to submit your quiz? You cannot change your answers after submission.');
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    startTimer();
+    
+    // Add event listeners to all radio buttons
+    document.querySelectorAll('input[type="radio"]').forEach(function(radio) {
+        radio.addEventListener('change', updateProgress);
+    });
+    
+    // Prevent form submission on page unload
+    window.addEventListener('beforeunload', function(e) {
+        if (timeInSeconds > 0) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+});
+</script>
+{% endblock %}

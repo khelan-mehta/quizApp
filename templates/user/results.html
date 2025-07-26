@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Your Quiz Results{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Your Quiz Results</h2>
+
+    {% if scores %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Quiz Title</th>
+                    <th>Score</th>
+                    <th>Total Questions</th>
+                    <th>Percentage</th>
+                    <th>Time Taken</th>
+                    <th>Date Attempted</th>
+                    <th>View</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for score in scores %}
+                    <tr>
+                        <td>{{ score.quiz.title }}</td>
+                        <td>{{ score.total_scored }}</td>
+                        <td>{{ score.total_questions }}</td>
+                        <td>{{ "%.2f"|format((score.total_scored / score.total_questions) * 100) }}%</td>
+                        <td>{{ score.time_taken }}</td>
+                        <td>{{ score.time_stamp_of_attempt.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <a href="{{ url_for('user.quiz_result', score_id=score.id) }}" class="btn btn-sm btn-primary">
+                                View
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>You haven't attempted any quizzes yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

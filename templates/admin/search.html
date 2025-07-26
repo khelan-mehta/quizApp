@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Search Results - Quiz Master{% endblock %}
+{% block content %}
+<h1>Search Results for "{{ query }}"</h1>
+<h3>Users</h3>
+<ul>
+    {% for user in results.users %}
+        <li>{{ user.full_name }} ({{ user.username }})</li>
+    {% endfor %}
+</ul>
+<h3>Subjects</h3>
+<ul>
+    {% for subject in results.subjects %}
+        <li>{{ subject.name }}</li>
+    {% endfor %}
+</ul>
+<h3>Quizzes</h3>
+<ul>
+    {% for quiz in results.quizzes %}
+        <li>{{ quiz.title }}</li>
+    {% endfor %}
+</ul>
+{% if not results.users and not results.subjects and not results.quizzes %}
+    <p>No results found.</p>
+{% endif %}
+{% endblock %}

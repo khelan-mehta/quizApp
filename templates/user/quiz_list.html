@@ -1,0 +1,414 @@
+{% extends "base.html" %}
+
+{% block title %}Available Quizzes - Quiz Master{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-clipboard-list me-2"></i>Available Quizzes</h2>
+    <div class="btn-group">
+        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+            <i class="fas fa-filter me-1"></i>Filter
+        </button>
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="fas fa-sort me-1"></i>Sort by
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" onclick="sortQuizzes('name')">Name</a></li>
+                <li><a class="dropdown-item" href="#" onclick="sortQuizzes('date')">Date</a></li>
+                <li><a class="dropdown-item" href="#" onclick="sortQuizzes('subject')">Subject</a></li>
+                <li><a class="dropdown-item" href="#" onclick="sortQuizzes('difficulty')">Duration</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Search Bar -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="text" class="form-control" id="searchInput" placeholder="Search quizzes by name, subject, or chapter..." onkeyup="searchQuizzes()">
+        </div>
+    </div>
+    <div class="col-md-4">
+        <select class="form-select" id="subjectFilter" onchange="filterBySubject()">
+            <option value="">All Subjects</option>
+            {% for subject in subjects %}
+            <option value="{{ subject.id }}">{{ subject.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+<!-- Quiz Cards -->
+<div id="quizContainer">
+    {% for subject in subjects %}
+    <div class="subject-section mb-5" data-subject-id="{{ subject.id }}">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="text-primary border-bottom pb-2">
+                <i class="fas fa-book me-2"></i>{{ subject.name }}
+                <small class="text-muted">({{ subject.chapters|length }} chapters)</small>
+            </h4>
+            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#subject{{ subject.id }}" aria-expanded="true">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </div>
+        
+        <div class="collapse show" id="subject{{ subject.id }}">
+            <p class="text-muted mb-3">{{ subject.description }}</p>
+            
+            {% if subject.chapters %}
+            <div class="row">
+                {% for chapter in subject.chapters %}
+                {% if chapter.quizzes %}
+                <div class="col-12 mb-4">
+                    <div class="card border-start border-primary border-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-bookmark me-2"></i>{{ chapter.name }}
+                                <span class="badge bg-secondary ms-2">{{ chapter.quizzes|length }} quiz{{ 'zes' if chapter.quizzes|length != 1 }}</span>
+                            </h5>
+                            <small class="text-muted">{{ chapter.description }}</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for quiz in chapter.quizzes %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="card h-100 quiz-card" 
+                                         data-quiz-name="{{ quiz.title.lower() }}"
+                                         data-subject-name="{{ subject.name.lower() }}"
+                                         data-chapter-name="{{ chapter.name.lower() }}">
+                                        <div class="card-body d-flex flex-column">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <h6 class="card-title mb-0">{{ quiz.title }}</h6>
+                                                <span class="badge bg-info">{{ quiz.questions|length }} Q</span>
+                                            </div>
+                                            
+                                            <div class="mb-3 flex-grow-1">
+                                                <div class="d-flex align-items-center mb-1">
+                                                    <i class="fas fa-clock text-muted me-1"></i>
+                                                    <small class="text-muted">Duration: {{ quiz.time_duration }}</small>
+                                                </div>
+                                                <div class="d-flex align-items-center mb-1">
+                                                    <i class="fas fa-calendar text-muted me-1"></i>
+                                                    <small class="text-muted">Date: {{ quiz.date_of_quiz.strftime('%Y-%m-%d') }}</small>
+                                                </div>
+                                                {% if quiz.remarks %}
+                                                <div class="mt-2">
+                                                    <small class="text-muted">{{ quiz.remarks[:50] }}{% if quiz.remarks|length > 50 %}...{% endif %}</small>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            <!-- Quiz Statistics -->
+                                            {% set user_attempts = quiz.scores|selectattr('user_id', 'equalto', session.user_id)|list %}
+                                            {% if user_attempts %}
+                                            <div class="mb-2">
+                                                <small class="text-muted">Your attempts: {{ user_attempts|length }}</small>
+                                                {% set best_score = user_attempts|max(attribute='percentage') %}
+                                                <div class="d-flex align-items-center">
+                                                    <small class="text-muted me-2">Best score:</small>
+                                                    <span class="badge bg-{{ 'success' if best_score.percentage >= 70 else 'warning' if best_score.percentage >= 50 else 'danger' }}">
+                                                        {{ best_score.percentage }}%
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            <div class="d-grid gap-2">
+                                                {% if quiz.questions|length > 0 %}
+                                                <a href="{{ url_for('user.start_quiz', quiz_id=quiz.id) }}" 
+                                                   class="btn btn-primary btn-sm"
+                                                   onclick="return confirmStartQuiz('{{ quiz.title }}', '{{ quiz.time_duration }}', {{ quiz.questions|length }})">
+                                                    <i class="fas fa-play me-1"></i>Start Quiz
+                                                </a>
+                                                {% else %}
+                                                <button class="btn btn-secondary btn-sm" disabled>
+                                                    <i class="fas fa-exclamation-circle me-1"></i>No Questions Yet
+                                                </button>
+                                                {% endif %}
+                                                
+                                                {% if user_attempts %}
+                                                <button class="btn btn-outline-info btn-sm" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#historyModal{{ quiz.id }}">
+                                                    <i class="fas fa-history me-1"></i>View History
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Quiz History Modal -->
+                                {% if user_attempts %}
+                                <div class="modal fade" id="historyModal{{ quiz.id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Quiz History - {{ quiz.title }}</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="table-responsive">
+                                                    <table class="table table-striped">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Attempt</th>
+                                                                <th>Score</th>
+                                                                <th>Percentage</th>
+                                                                <th>Time Taken</th>
+                                                                <th>Date</th>
+                                                                <th>Action</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for attempt in user_attempts|sort(attribute='time_stamp_of_attempt', reverse=true) %}
+                                                            <tr>
+                                                                <td>{{ loop.index }}</td>
+                                                                <td>{{ attempt.total_scored }}/{{ attempt.total_questions }}</td>
+                                                                <td>
+                                                                    <span class="badge bg-{{ 'success' if attempt.percentage >= 70 else 'warning' if attempt.percentage >= 50 else 'danger' }}">
+                                                                        {{ attempt.percentage }}%
+                                                                    </span>
+                                                                </td>
+                                                                <td>{{ attempt.time_taken or 'N/A' }}</td>
+                                                                <td>{{ attempt.time_stamp_of_attempt.strftime('%Y-%m-%d %H:%M') }}</td>
+                                                                <td>
+                                                                    <a href="{{ url_for('user.quiz_result', score_id=attempt.id) }}" 
+                                                                       class="btn btn-sm btn-outline-primary">
+                                                                        <i class="fas fa-eye"></i>
+                                                                    </a>
+                                                                </td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>No chapters available for this subject yet.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- No Results Message -->
+<div id="noResults" class="text-center py-5" style="display: none;">
+    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+    <h4 class="text-muted">No quizzes found</h4>
+    <p class="text-muted">Try adjusting your search criteria or filters.</p>
+    <button class="btn btn-primary" onclick="clearFilters()">
+        <i class="fas fa-times me-1"></i>Clear Filters
+    </button>
+</div>
+
+<!-- Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Filter Quizzes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="difficultyFilter" class="form-label">Duration</label>
+                    <select class="form-select" id="difficultyFilter">
+                        <option value="">Any Duration</option>
+                        <option value="short">Short (≤ 30 minutes)</option>
+                        <option value="medium">Medium (30-60 minutes)</option>
+                        <option value="long">Long (> 60 minutes)</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="questionsFilter" class="form-label">Number of Questions</label>
+                    <select class="form-select" id="questionsFilter">
+                        <option value="">Any Number</option>
+                        <option value="few">Few (≤ 10 questions)</option>
+                        <option value="moderate">Moderate (10-20 questions)</option>
+                        <option value="many">Many (> 20 questions)</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="attemptFilter" class="form-label">My Attempts</label>
+                    <select class="form-select" id="attemptFilter">
+                        <option value="">All Quizzes</option>
+                        <option value="attempted">Already Attempted</option>
+                        <option value="not-attempted">Not Attempted Yet</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="clearFilters()">Clear All</button>
+                <button type="button" class="btn btn-primary" onclick="applyFilters()" data-bs-dismiss="modal">Apply Filters</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Empty State -->
+{% if not subjects or not subjects|selectattr('chapters')|list %}
+<div class="text-center py-5">
+    <i class="fas fa-clipboard-list fa-4x text-muted mb-4"></i>
+    <h3 class="text-muted">No Quizzes Available</h3>
+    <p class="text-muted">There are currently no quizzes available. Please check back later or contact your administrator.</p>
+    <a href="{{ url_for('user.dashboard') }}" class="btn btn-primary">
+        <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+    </a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Search functionality
+function searchQuizzes() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const quizCards = document.querySelectorAll('.quiz-card');
+    let visibleCount = 0;
+    
+    quizCards.forEach(card => {
+        const quizName = card.dataset.quizName;
+        const subjectName = card.dataset.subjectName;
+        const chapterName = card.dataset.chapterName;
+        
+        const isVisible = quizName.includes(searchTerm) || 
+                         subjectName.includes(searchTerm) || 
+                         chapterName.includes(searchTerm);
+        
+        card.closest('.col-md-6, .col-lg-4').style.display = isVisible ? 'block' : 'none';
+        if (isVisible) visibleCount++;
+    });
+    
+    // Show/hide subject sections based on visible quizzes
+    document.querySelectorAll('.subject-section').forEach(section => {
+        const visibleQuizzes = section.querySelectorAll('.quiz-card:not([style*="display: none"])').length;
+        section.style.display = visibleQuizzes > 0 ? 'block' : 'none';
+    });
+    
+    // Show no results message
+    document.getElementById('noResults').style.display = visibleCount === 0 ? 'block' : 'none';
+}
+
+// Filter by subject
+function filterBySubject() {
+    const selectedSubject = document.getElementById('subjectFilter').value;
+    const subjectSections = document.querySelectorAll('.subject-section');
+    
+    subjectSections.forEach(section => {
+        if (selectedSubject === '' || section.dataset.subjectId === selectedSubject) {
+            section.style.display = 'block';
+        } else {
+            section.style.display = 'none';
+        }
+    });
+    
+    // Check if any sections are visible
+    const visibleSections = document.querySelectorAll('.subject-section:not([style*="display: none"])').length;
+    document.getElementById('noResults').style.display = visibleSections === 0 ? 'block' : 'none';
+}
+
+// Sort quizzes
+function sortQuizzes(sortBy) {
+    const container = document.getElementById('quizContainer');
+    const sections = Array.from(container.children);
+    
+    sections.sort((a, b) => {
+        switch(sortBy) {
+            case 'name':
+                return a.querySelector('h4').textContent.localeCompare(b.querySelector('h4').textContent);
+            case 'subject':
+                return a.querySelector('h4').textContent.localeCompare(b.querySelector('h4').textContent);
+            default:
+                return 0;
+        }
+    });
+    
+    sections.forEach(section => container.appendChild(section));
+}
+
+// Apply filters
+function applyFilters() {
+    const difficultyFilter = document.getElementById('difficultyFilter').value;
+    const questionsFilter = document.getElementById('questionsFilter').value;
+    const attemptFilter = document.getElementById('attemptFilter').value;
+    
+    const quizCards = document.querySelectorAll('.quiz-card');
+    let visibleCount = 0;
+    
+    quizCards.forEach(card => {
+        let isVisible = true;
+        
+        // Add your filtering logic here based on the selected filters
+        // This is a simplified version - you might need to pass more data from the backend
+        
+        card.closest('.col-md-6, .col-lg-4').style.display = isVisible ? 'block' : 'none';
+        if (isVisible) visibleCount++;
+    });
+    
+    // Update visibility of subject sections
+    document.querySelectorAll('.subject-section').forEach(section => {
+        const visibleQuizzes = section.querySelectorAll('.quiz-card:not([style*="display: none"])').length;
+        section.style.display = visibleQuizzes > 0 ? 'block' : 'none';
+    });
+    
+    document.getElementById('noResults').style.display = visibleCount === 0 ? 'block' : 'none';
+}
+
+// Clear all filters
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('subjectFilter').value = '';
+    document.getElementById('difficultyFilter').value = '';
+    document.getElementById('questionsFilter').value = '';
+    document.getElementById('attemptFilter').value = '';
+    
+    // Show all quizzes and sections
+    document.querySelectorAll('.quiz-card').forEach(card => {
+        card.closest('.col-md-6, .col-lg-4').style.display = 'block';
+    });
+    
+    document.querySelectorAll('.subject-section').forEach(section => {
+        section.style.display = 'block';
+    });
+    
+    document.getElementById('noResults').style.display = 'none';
+}
+
+// Confirm quiz start
+function confirmStartQuiz(quizTitle, duration, questionCount) {
+    return confirm(`Are you ready to start "${quizTitle}"?\n\nDuration: ${duration}\nQuestions: ${questionCount}\n\nOnce started, the timer will begin immediately.`);
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-expand first subject if there's only one
+    const subjects = document.querySelectorAll('.subject-section');
+    if (subjects.length === 1) {
+        const collapse = subjects[0].querySelector('.collapse');
+        if (collapse) {
+            collapse.classList.add('show');
+        }
+    }
+});
+</script>
+{% endblock %}

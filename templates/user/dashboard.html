@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Quiz Master{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-user-graduate me-2"></i>Welcome, {{ session.full_name }}!</h2>
+    <div class="btn-group">
+        <a href="{{ url_for('user.quiz_list') }}" class="btn btn-primary">
+            <i class="fas fa-clipboard-list me-1"></i>Take Quiz
+        </a>
+        <a href="{{ url_for('user.results') }}" class="btn btn-success">
+            <i class="fas fa-chart-bar me-1"></i>View Results
+        </a>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-clipboard-check fa-2x mb-2"></i>
+                <h4>{{ stats.total_attempts }}</h4>
+                <p class="mb-0">Quiz Attempts</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-percentage fa-2x mb-2"></i>
+                <h4>{{ stats.average_score }}%</h4>
+                <p class="mb-0">Average Score</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-book fa-2x mb-2"></i>
+                <h4>{{ stats.available_subjects }}</h4>
+                <p class="mb-0">Available Subjects</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-clipboard-list fa-2x mb-2"></i>
+                <h4>{{ stats.total_quizzes }}</h4>
+                <p class="mb-0">Total Quizzes</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Quiz Attempts -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-history me-2"></i>Recent Quiz Attempts</h5>
+                <a href="{{ url_for('user.results') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_attempts %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Quiz</th>
+                                    <th>Subject</th>
+                                    <th>Score</th>
+                                    <th>Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for attempt in recent_attempts %}
+                                <tr>
+                                    <td>{{ attempt.quiz.title }}</td>
+                                    <td>{{ attempt.quiz.chapter.subject.name }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if attempt.percentage >= 70 else 'warning' if attempt.percentage >= 50 else 'danger' }}">
+                                            {{ attempt.total_scored }}/{{ attempt.total_questions }} ({{ attempt.percentage }}%)
+                                        </span>
+                                    </td>
+                                    <td>{{ attempt.time_stamp_of_attempt.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('user.quiz_result', score_id=attempt.id) }}" class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No quiz attempts yet</p>
+                        <a href="{{ url_for('user.quiz_list') }}" class="btn btn-primary">
+                            <i class="fas fa-play me-1"></i>Take Your First Quiz
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Available Subjects -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-book-open me-2"></i>Available Subjects</h5>
+                <a href="{{ url_for('user.quiz_list') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if subjects %}
+                    <div class="list-group list-group-flush">
+                        {% for subject in subjects[:5] %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div>
+                                <strong>{{ subject.name }}</strong><br>
+                                <small class="text-muted">{{ subject.chapters|length }} chapters</small>
+                            </div>
+                            <a href="{{ url_for('user.subject_chapters', subject_id=subject.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if subjects|length > 5 %}
+                        <div class="text-center mt-3">
+                            <small class="text-muted">And {{ subjects|length - 5 }} more subjects...</small>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-book fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No subjects available</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Performance Chart -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line me-2"></i>Performance Overview</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_attempts %}
+                    <canvas id="performanceChart" width="400" height="200"></canvas>
+                {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-chart-line fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">Take some quizzes to see your performance</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Start Guide -->
+{% if stats.total_attempts == 0 %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5><i class="fas fa-rocket me-2"></i>Getting Started</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3">
+                        <i class="fas fa-search fa-3x text-primary mb-2"></i>
+                        <h6>1. Browse Subjects</h6>
+                        <p class="text-muted">Explore available subjects and choose what interests you</p>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <i class="fas fa-play-circle fa-3x text-success mb-2"></i>
+                        <h6>2. Take a Quiz</h6>
+                        <p class="text-muted">Start with any quiz to test your knowledge</p>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <i class="fas fa-chart-bar fa-3x text-info mb-2"></i>
+                        <h6>3. Track Progress</h6>
+                        <p class="text-muted">Monitor your performance and improve over time</p>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <a href="{{ url_for('user.quiz_list') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-play me-2"></i>Start Your First Quiz
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+{% if recent_attempts %}
+// Performance Chart
+const ctx = document.getElementById('performanceChart').getContext('2d');
+const performanceChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: [
+            {% for attempt in recent_attempts|reverse %}
+            '{{ attempt.time_stamp_of_attempt.strftime("%m/%d") }}'{{ "," if not loop.last }}
+            {% endfor %}
+        ],
+        datasets: [{
+            label: 'Score %',
+            data: [
+                {% for attempt in recent_attempts|reverse %}
+                {{ attempt.percentage }}{{ "," if not loop.last }}
+                {% endfor %}
+            ],
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

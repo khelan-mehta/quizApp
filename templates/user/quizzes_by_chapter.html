@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}{{ chapter.name }} - Quizzes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-3"><i class="fas fa-list-ul me-2"></i>Quizzes in {{ chapter.name }}</h2>
+
+  {% if quizzes %}
+    <div class="list-group">
+      {% for quiz in quizzes %}
+        <a href="{{ url_for('user.start_quiz', quiz_id=quiz.id) }}" class="list-group-item list-group-item-action">
+          <strong>{{ quiz.title }}</strong><br />
+          <small>Date: {{ quiz.date_of_quiz.strftime('%Y-%m-%d') }} | Duration: {{ quiz.time_duration }}</small>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted">No quizzes available for this chapter.</p>
+  {% endif %}
+</div>
+{% endblock %}

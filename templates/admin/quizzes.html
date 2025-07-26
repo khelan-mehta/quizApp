@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Quizzes{% endblock %}
+
+{% block content %}
+<h2>Quizzes for {{ chapter.name }}</h2>
+<ul>
+  {% for quiz in quizzes %}
+    <li>{{ quiz.title }} — {{ quiz.live_from.strftime("%Y-%m-%d %H:%M") }}</li>
+  {% endfor %}
+</ul>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}{{ subject.name }} - Chapters{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-3"><i class="fas fa-bookmark me-2"></i>{{ subject.name }} - Chapters</h2>
+
+  {% if chapters %}
+    <div class="list-group">
+      {% for chapter in chapters %}
+        <a href="{{ url_for('user.quizzes_by_chapter', chapter_id=chapter.id) }}" class="list-group-item list-group-item-action">
+          {{ chapter.name }}
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted">No chapters available for this subject.</p>
+  {% endif %}
+</div>
+{% endblock %}

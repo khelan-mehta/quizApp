@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Create Quiz - Quiz Master{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2><i class="fas fa-clipboard-list me-2"></i>Create Quiz for {{ chapter.name }}</h2>
+    <form method="POST" action="{{ url_for('admin.create_quiz', chapter_id=chapter.id) }}">
+        <div class="mb-3">
+            <label for="title" class="form-label">Quiz Title*</label>
+            <input type="text" class="form-control" id="title" name="title" required>
+        </div>
+        <div class="mb-3">
+            <label for="live_from" class="form-label">Live From (YYYY-MM-DD HH:MM)*</label>
+            <input type="datetime-local" class="form-control" id="live_from" name="live_from" required>
+        </div>
+        <div class="mb-3">
+            <label for="live_to" class="form-label">Live To (YYYY-MM-DD HH:MM)*</label>
+            <input type="datetime-local" class="form-control" id="live_to" name="live_to" required>
+        </div>
+        <div class="mb-3">
+            <label for="time_duration" class="form-label">Time Duration (HH:MM)*</label>
+            <input type="text" class="form-control" id="time_duration" name="time_duration" placeholder="e.g., 01:30" required>
+        </div>
+        <div class="mb-3">
+            <label for="remarks" class="form-label">Remarks</label>
+            <textarea class="form-control" id="remarks" name="remarks" rows="3"></textarea>
+        </div>
+
+        <h4>Add Questions</h4>
+        <div id="questions">
+            <div class="question mb-4">
+                <div class="mb-3">
+                    <label for="question_1" class="form-label">Question 1*</label>
+                    <input type="text" class="form-control" id="question_1" name="question_1" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Options*</label>
+                    <input type="text" class="form-control mb-2" name="option1_1" placeholder="Option 1" required>
+                    <input type="text" class="form-control mb-2" name="option2_1" placeholder="Option 2" required>
+                    <input type="text" class="form-control mb-2" name="option3_1" placeholder="Option 3" required>
+                    <input type="text" class="form-control mb-2" name="option4_1" placeholder="Option 4" required>
+                </div>
+                <div class="mb-3">
+                    <label for="correct_option_1" class="form-label">Correct Option (1-4)*</label>
+                    <select class="form-control" id="correct_option_1" name="correct_option_1" required>
+                        <option value="1">Option 1</option>
+                        <option value="2">Option 2</option>
+                        <option value="3">Option 3</option>
+                        <option value="4">Option 4</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn btn-secondary mb-3" onclick="addQuestion()">Add Another Question</button>
+        <input type="hidden" name="question_count" id="question_count" value="1">
+
+        <button type="submit" class="btn btn-primary">Create Quiz</button>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function addQuestion() {
+    const questionCount = parseInt(document.getElementById('question_count').value) + 1;
+    const questionsDiv = document.getElementById('questions');
+    const newQuestion = document.createElement('div');
+    newQuestion.className = 'question mb-4';
+    newQuestion.innerHTML = `
+        <div class="mb-3">
+            <label for="question_${questionCount}" class="form-label">Question ${questionCount}*</label>
+            <input type="text" class="form-control" id="question_${questionCount}" name="question_${questionCount}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Options*</label>
+            <input type="text" class="form-control mb-2" name="option1_${questionCount}" placeholder="Option 1" required>
+            <input type="text" class="form-control mb-2" name="option2_${questionCount}" placeholder="Option 2" required>
+            <input type="text" class="form-control mb-2" name="option3_${questionCount}" placeholder="Option 3" required>
+            <input type="text" class="form-control mb-2" name="option4_${questionCount}" placeholder="Option 4" required>
+        </div>
+        <div class="mb-3">
+            <label for="correct_option_${questionCount}" class="form-label">Correct Option (1-4)*</label>
+            <select class="form-control" id="correct_option_${questionCount}" name="correct_option_${questionCount}" required>
+                <option value="1">Option 1</option>
+                <option value="2">Option 2</option>
+                <option value="3">Option 3</option>
+                <option value="4">Option 4</option>
+            </select>
+        </div>
+    `;
+    questionsDiv.appendChild(newQuestion);
+    document.getElementById('question_count').value = questionCount;
+}
+</script>
+{% endblock %}
